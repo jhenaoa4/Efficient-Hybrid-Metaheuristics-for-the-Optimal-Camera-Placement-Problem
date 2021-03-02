@@ -33,11 +33,14 @@ for ins in instances:
     solution=[]
     k=1
     while samplesCovered < nSamples:
+        print(samplesCovered)
         minim=c.index(min(c))
-        maxAll=1
-        for i in range(1,cover[minim][0]):
-            if candidates[cover[minim][i]][0]>=maxAll:
-                maxAll=i   
+        maxAll=0
+        for i in range(1,cover[minim][0]+1):
+            if candidates[cover[minim][i]][0]>maxAll:
+                maxAll=candidates[cover[minim][i]][0]
+                sel=cover[minim][i]
+        maxAll=sel
         solution.append(maxAll)
         nSol+=1
         samplesCovered+=candidates[maxAll][0]
@@ -48,9 +51,11 @@ for ins in instances:
             aux=candidates[maxAll][i]
             while j <= cover[aux][0]:
                 candidates[cover[aux][j]][0]-=1
-                de=candidates[cover[aux][j]].index(aux)
-                candidates[cover[aux][j]].remove(candidates[cover[aux][j]][de])
+                de=candidates[cover[aux][j]][1:].index(aux)
+                candidates[cover[aux][j]][de+1]=[]
+                candidates[cover[aux][j]].remove([])
                 j+=1
             cover[aux][0]=nCandidates+1
+            c[aux]=nCandidates+1
             # i+=1
         k+=1
