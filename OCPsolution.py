@@ -8,7 +8,7 @@ def destruction1(nSol, solution, alpha):
         solution.remove(solution[s])
     return [solution, nSol, rem]
 
-def repair1(nCandidates, p, nSamples, solBinary, rem):
+def repair1(nCandidates, p, nSamples, solBinary, rem, cover):
     mod = Model("Camera_Placement")
     
     # Set of candidates
@@ -55,6 +55,64 @@ def repair1(nCandidates, p, nSamples, solBinary, rem):
             
     return solution, nSol
 
+def destruction2(nSol, solution, beta):
+    nd=math.floor(nSol*alpha)
+    add=[]
+    for i in range(nd):
+        s=random.randint(0,nCandidates-1)
+        while s in solution:
+            s=random.randint(0,nSol-1)
+        nSol+=1
+        add.append(solution[s])
+        solution.append(solution[s])
+    return [solution, nSol, add]
+
+def repair2(nCandidates, p, nSamples, solBinary, add, cover):
+    mod = Model("Camera_Placement")
+    
+    # Set of candidates
+    set_C=range(nCandidates)
+    
+    # Decision variables
+    X=mod.addVars(nCandidates,vtype=GRB.BINARY, name="Cameras")
+    
+    mod.update()
+    
+    # Constraints
+    for j in range(nSamples):
+        name= "Cnstr_"+str(j)
+        ctr = LinExpr()
+        for k in range(1,len(cover[j])):
+            ctr.addTerms(1,X[cover[j][k]])
+        mod.addConstr(ctr >= 1, name=name)
+#        mod.addConstr(quicksum(p[i][j]*X[i] for i in range(nCandidates)) >= 1, name=name)
+    
+    for j in range(nCandidates):
+        name= "Cnstr_"+str(nSamples+j)
+        mod.addConstr(X[j] <= solBinary[j], name=name)
+    
+    ctr2 = LinExpr()
+    for j in range(len(add)):
+        ctr2.addTerms(1,X[add[j]])
+    mod.addConstr(ctr2 >= len(add)-1)
+    
+    # Objective function
+    mod.setObjective(quicksum(X[i] for i in range(nCandidates)), GRB.MINIMIZE)
+    mod.setParam(GRB.Param.OutputFlag, 0)
+    
+    mod.update()
+    
+    # Solve
+    mod.optimize()
+    
+    nSol=mod.objVal
+    #print(nSol)
+    solution=[]
+    for i in range(int(nCandidates)):
+        if X[i].X >= 0.99:
+            solution.append(i)
+            
+    return solution, nSol
 
 import time
 import conda
@@ -65,10 +123,10 @@ from gurobipy import *
 import math
 
 print("----------------------")
-instances = [str(i).zfill(2) for i in range(1,5)]
+instances = [str(i).zfill(2) for i in range(1,2)]
 for ins in instances:
     random.seed(5)
-    data = open("C:\Git\Instances\OCP\AC_"+ins+"_cover.txt", "r")
+    data = open("AC_"+ins+"_cover.txt", "r")
     nSC=data.readline().split()
     nSamples=int(nSC[0])
     nCandidates=int(nSC[1])
@@ -142,12 +200,25 @@ for ins in instances:
         solBinary[solution[i]]=1
     
     p=[]
-    solution, nSol = repair1(nCandidates, p, nSamples, solBinary, rem)
+    solution, nSol = repair1(nCandidates, p, nSamples, solBinary, rem, coverOriginal)
+    print(nSol)
+    print(solution)
+    
+    beta=0.4
+    [solution, nSol, add]= destruction2(nSol, solution, beta)
+    print(nSol)
+    print(solution)
+    print(add)
+    print("")
+
+    
+    solBinary=np.zeros([nCandidates, 1])
+    for i in range(nSol):
+        solBinary[solution[i]]=1
+
+    solution, nSol = repair2(nCandidates, p, nSamples, solBinary, add, coverOriginal)
     print(nSol)
     print(solution)
 
     ct=time.time()-ct
     print(ct)
-  
-
-        
