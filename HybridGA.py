@@ -76,8 +76,7 @@ def update(H, P, candidates):
     for i in range(nP):
         for j in range(i,nP):
             distances[i][j]=dist(P[i],P[j])
-            
-    lamb = Lambda(P, candidates):
+        
             
     mod = Model("Population_Update")
     b=Best(P)
@@ -87,6 +86,7 @@ def update(H, P, candidates):
     
     # Decision variables
     X=mod.addVars(nCandidates,vtype=GRB.BINARY, name="Cameras")
+    lamb=(lb=0.0, ub=float('inf'),vtype=GRB.CONTINUOUS, name="lambda")
     
     mod.update()
     
@@ -100,7 +100,7 @@ def update(H, P, candidates):
     mod.addConstr(X[b]==1)
     
     # Objective function
-    mod.setObjective(quicksum(X[i] for i in range(nCandidates)), GRB.MINIMIZE)
+    mod.setObjective(lamb, GRB.MINIMIZE)
     mod.setParam(GRB.Param.OutputFlag, 0)
     
     mod.update()
@@ -132,7 +132,11 @@ def HybridGA(alpha, sol0, n0, nCandidates, candidates, nSamples, cover, candidat
     H=[] #?
     while stop_criteria==False:
         nP=len(P)
-        for s in range(nP)
+        for s in range(nP):
+            lamb = Lambda(P, candidates)
+            Psort=[lamb P]
+            Psort.sort(axis=0)
+            P=Psort[:][0]
             i, j = selection(P)
             h = crossover(i,j,P)
             hM = mutation(h, alpha, cover)
