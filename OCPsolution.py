@@ -56,7 +56,7 @@ def repair1(nCandidates, p, nSamples, solBinary, rem, cover):
     return solution, nSol
 
 def destruction2(nSol, solution, beta):
-    nd=math.floor(nSol*beta)
+    nd=math.floor(nSol*alpha)
     add=[]
     for i in range(nd):
         s=random.randint(0,nCandidates-1)
@@ -94,7 +94,7 @@ def repair2(nCandidates, p, nSamples, solBinary, add, cover):
     ctr2 = LinExpr()
     for j in range(len(add)):
         ctr2.addTerms(1,X[add[j]])
-    mod.addConstr(ctr2 >= 1)
+    mod.addConstr(ctr2 >= len(add)-1)
     
     # Objective function
     mod.setObjective(quicksum(X[i] for i in range(nCandidates)), GRB.MINIMIZE)
@@ -123,12 +123,10 @@ from gurobipy import *
 import math
 
 print("----------------------")
-instances = [str(i).zfill(2) for i in range(1,5)]
+instances = [str(i).zfill(2) for i in range(1,2)]
 for ins in instances:
-    print("--- Instance ", ins, " ---")
     random.seed(5)
-#    data = open("AC_"+ins+"_cover.txt", "r")
-    data = open("C:\Git\Instances\OCP\AC_"+ins+"_cover.txt", "r")
+    data = open("AC_"+ins+"_cover.txt", "r")
     nSC=data.readline().split()
     nSamples=int(nSC[0])
     nCandidates=int(nSC[1])
@@ -141,8 +139,6 @@ for ins in instances:
         cover[ind].append(nCand)
         for i in cand:
             cover[ind].append(int(i))
-    
-    bestf=nCandidates
             
     candidates=[[el * 0] for el in range(0,nCandidates)]
 #    p=np.zeros([nCandidates, nSamples])
@@ -158,6 +154,7 @@ for ins in instances:
     ct=time.time()
 
     coverOriginal=cover.copy()
+    candidatesOriginal=candidates.copy()
     c=[item[0] for item in cover]
     nSol=0
     samplesCovered=0
@@ -187,60 +184,46 @@ for ins in instances:
                 j+=1
             cover[aux][0]=nCandidates+1
             c[aux]=nCandidates+1
-    if nSol < bestf:
-        bestf=nSol
-        print(bestf)
-#    print("First solution")
-#    print(nSol, solution)
-#    print("")
+    print(nSol)
+    print(solution)
+    print("")
     
-    it=0
-    while it<20:
-        it+=1
-    
-        alpha=0.4
-        [solution, nSol, rem]= destruction1(nSol, solution, alpha)
-#        print("Destruction: Removing candidates")
-#        print(nSol)
-#        print(solution)
-#        print(rem)
-#        print("")
-    
-        
-        solBinary=np.zeros([nCandidates, 1])
-        for i in range(int(nSol)):
-            solBinary[solution[i]]=1
-        
-        p=[]
-        solution, nSol = repair1(nCandidates, p, nSamples, solBinary, rem, coverOriginal)
-        if nSol < bestf:
-            bestf=nSol
-            print(bestf)
-#        print("Reparation 1 with Gurobi")
-#        print(nSol, solution)
-#        print("")
-        
-        beta=10
-        [solution, nSol, add]= destruction2(nSol, solution, beta)
-#        print("Destruction: Adding candidates")
-#        print(nSol)
-#        print(solution)
-#        print(add)
-#        print("")
-    
-        
-        solBinary=np.zeros([int(nCandidates), 1])
-        for i in range(int(nSol)):
-            solBinary[solution[i]]=1
-    
-        solution, nSol = repair2(nCandidates, p, nSamples, solBinary, add, coverOriginal)
-        if nSol < bestf:
-            bestf=nSol
-            print(bestf)
-#        print("Reparation 2 with Gurobi")
-#        print(nSol, solution)
-#        print("")
+    alpha=0.4
+    [solution, nSol, rem]= destruction1(nSol, solution, alpha)
+    print(nSol)
+    print(solution)
+    print(rem)
+    print("")
 
-    print("Time")
+    
+    solBinary=np.zeros([nCandidates, 1])
+    for i in range(nSol):
+        solBinary[solution[i]]=1
+    
+    p=[]
+    solution, nSol = repair1(nCandidates, p, nSamples, solBinary, rem, coverOriginal)
+    print(nSol)
+    print(solution)
+    
+    beta=0.4
+    [solution, nSol, add]= destruction2(nSol, solution, beta)
+    print(nSol)
+    print(solution)
+    print(add)
+    print("")
+
+    
+    solBinary=np.zeros([nCandidates, 1])
+    for i in range(nSol):
+        solBinary[solution[i]]=1
+
+    solution, nSol = repair2(nCandidates, p, nSamples, solBinary, add, coverOriginal)
+    print(nSol)
+    print(solution)
+
     ct=time.time()-ct
     print(ct)
+    candidates=candidatesOriginal
+    del candidatesOriginal
+    solution=HybridGA(0.4, solution, 10, nCandidates, candidates, nSamples, cover, candidates)
+    
