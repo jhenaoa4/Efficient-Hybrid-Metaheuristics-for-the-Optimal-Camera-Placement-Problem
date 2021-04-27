@@ -149,7 +149,7 @@ def repair3(nCandidates, nSamples, solBinary, cover):
     
     # Objective function
     mod.setObjective(quicksum(X[i] for i in range(nCandidates)), GRB.MINIMIZE)
-    mod.setParam(GRB.Param.OutputFlag, 1)
+    mod.setParam(GRB.Param.OutputFlag, 0)
     
     mod.update()
     
@@ -175,7 +175,7 @@ def initialPopulation(nCandidates, candidates1, nSamples, cover1):
         can=random.randint(0,nCandidates-1)
         solution1.append(can)
         nSol+=1
-        samCovered+=candidatesOriginal[can][0]
+        samCovered+=candidates1[can][0]
         i=1
         while i <= candidates1[can][0]:
             j=1
