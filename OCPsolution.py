@@ -214,10 +214,10 @@ for ins in instances:
 
     
     solBinary=np.zeros([nCandidates, 1])
-    for i in range(nSol):
+    for i in range(int(nSol)):
         solBinary[solution[i]]=1
 
-    solution, nSol = repair2(nCandidates, p, nSamples, solBinary, add, coverOriginal)
+    solution, nSol = repair2(nCandidates, nSamples, solBinary, add, coverOriginal)
     print(nSol)
     print(solution)
 
