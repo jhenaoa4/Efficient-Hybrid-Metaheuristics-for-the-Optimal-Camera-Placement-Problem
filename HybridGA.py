@@ -5,6 +5,7 @@ import gurobipy as gp
 from gurobipy import *
 import math
 import copy
+import pandas as pd
 
 def destruction1(nSol, solution, alpha):
     nd=math.floor(nSol*alpha)
@@ -303,9 +304,10 @@ def HybridGA(alpha, sol0, n0, nCandidates, candidates, nSamples, cover):
         for s in range(nP):
             print(s)
             coef = coeficient(P, candidatesOriginal)
-            # Psort=[coef, P]
-            # np.sort(Psort,axis=0, kind=None, order=None)
-            # P=Psort[:][0]
+            Psort=[coef, P]
+            Psort=pd.DataFrame(Psort)
+            Psort.sort_values(by=0)
+            P=Psort[:][0]
             i, j = selection(P)
             h = crossover(i,j,P)
             hM = mutation(h, alpha, coverOriginal)
