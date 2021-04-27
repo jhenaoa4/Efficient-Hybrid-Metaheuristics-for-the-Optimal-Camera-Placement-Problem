@@ -4,34 +4,195 @@ import random
 import gurobipy as gp
 from gurobipy import *
 import math
+import copy
 
-def initialPopulation(nCandidates, candidates, nSamples, cover):
-    samCovered=0
+def destruction1(nSol, solution, alpha):
+    nd=math.floor(nSol*alpha)
+    rem=[]
+    for i in range(nd):
+        s=random.randint(0,nSol-1)
+        nSol-=1
+        rem.append(solution[s])
+        solution.remove(solution[s])
+    return [solution, nSol, rem]
+
+def repair1(nCandidates, p, nSamples, solBinary, rem, cover):
+    mod = Model("Camera_Placement")
+    
+    # Set of candidates
+    set_C=range(nCandidates)
+    
+    # Decision variables
+    X=mod.addVars(nCandidates,vtype=GRB.BINARY, name="Cameras")
+    
+    mod.update()
+    
+    # Constraints
+    for j in range(nSamples):
+        name= "Cnstr_"+str(j)
+        ctr = LinExpr()
+        for k in range(1,len(cover[j])):
+            ctr.addTerms(1,X[cover[j][k]])
+        mod.addConstr(ctr >= 1, name=name)
+#        mod.addConstr(quicksum(p[i][j]*X[i] for i in range(nCandidates)) >= 1, name=name)
+    
+    for j in range(nCandidates):
+        name= "Cnstr_"+str(nSamples+j)
+        mod.addConstr(X[j] >= solBinary[j], name=name)
+    
+    ctr2 = LinExpr()
+    for j in range(len(rem)):
+        ctr2.addTerms(1,X[rem[j]])
+    mod.addConstr(ctr2 <= len(rem)-1)
+    
+    # Objective function
+    mod.setObjective(quicksum(X[i] for i in range(nCandidates)), GRB.MINIMIZE)
+    mod.setParam(GRB.Param.OutputFlag, 0)
+    
+    mod.update()
+    
+    # Solve
+    mod.optimize()
+    
+    nSol=mod.objVal
+    #print(nSol)
     solution=[]
-    nSol=0
-    coverOriginal=cover.copy()
-    while samCovered==nSamples:
-        can=random.randint(0,nCanditates)
-        solution.append(can)
+    for i in range(int(nCandidates)):
+        if X[i].X >= 0.99:
+            solution.append(i)
+            
+    return solution, nSol
+
+def destruction2(nSol, solution, beta):
+    nd=math.floor(nSol*alpha)
+    add=[]
+    for i in range(nd):
+        s=random.randint(0,nCandidates-1)
+        while s in solution:
+            s=random.randint(0,nCandidates-1)
         nSol+=1
-        samCovered+=candidates[can][0]
+        add.append(s)
+        solution.append(s)
+    return [solution, nSol, add]
+
+def repair2(nCandidates, p, nSamples, solBinary, add, cover):
+    mod = Model("Camera_Placement")
+    
+    # Set of candidates
+    set_C=range(nCandidates)
+    
+    # Decision variables
+    X=mod.addVars(nCandidates,vtype=GRB.BINARY, name="Cameras")
+    
+    mod.update()
+    
+    # Constraints
+    for j in range(nSamples):
+        name= "Cnstr_"+str(j)
+        ctr = LinExpr()
+        for k in range(1,len(cover[j])):
+            ctr.addTerms(1,X[cover[j][k]])
+        mod.addConstr(ctr >= 1, name=name)
+#        mod.addConstr(quicksum(p[i][j]*X[i] for i in range(nCandidates)) >= 1, name=name)
+    
+    for j in range(nCandidates):
+        name= "Cnstr_"+str(nSamples+j)
+        mod.addConstr(X[j] <= solBinary[j], name=name)
+    
+    ctr2 = LinExpr()
+    for j in range(len(add)):
+        ctr2.addTerms(1,X[add[j]])
+    mod.addConstr(ctr2 >= len(add)-1)
+    
+    # Objective function
+    mod.setObjective(quicksum(X[i] for i in range(nCandidates)), GRB.MINIMIZE)
+    mod.setParam(GRB.Param.OutputFlag, 0)
+    
+    mod.update()
+    
+    # Solve
+    mod.optimize()
+    
+    nSol=mod.objVal
+    #print(nSol)
+    solution=[]
+    for i in range(int(nCandidates)):
+        if X[i].X >= 0.99:
+            solution.append(i)
+            
+    return solution, nSol
+
+def repair3(nCandidates, nSamples, solBinary, cover):
+    mod = Model("Camera_Placement")
+    
+    # Set of candidates
+    set_C=range(nCandidates)
+    
+    # Decision variables
+    X=mod.addVars(nCandidates,vtype=GRB.BINARY, name="Cameras")
+    
+    mod.update()
+    
+    # Constraints
+    for j in range(nSamples):
+        name= "Cnstr_"+str(j)
+        ctr = LinExpr()
+        for k in range(1,len(cover[j])):
+            ctr.addTerms(1,X[cover[j][k]])
+        mod.addConstr(ctr >= 1, name=name)
+#        mod.addConstr(quicksum(p[i][j]*X[i] for i in range(nCandidates)) >= 1, name=name)
+    
+    for j in range(nCandidates):
+        name= "Cnstr_"+str(nSamples+j)
+        mod.addConstr(X[j] <= solBinary[j], name=name)
+    
+    # Objective function
+    mod.setObjective(quicksum(X[i] for i in range(nCandidates)), GRB.MINIMIZE)
+    mod.setParam(GRB.Param.OutputFlag, 0)
+    
+    mod.update()
+    
+    # Solve
+    mod.optimize()
+    
+    nSol=mod.objVal
+    #print(nSol)
+    solution=[]
+    for i in range(int(nCandidates)):
+        if X[i].X >= 0.99:
+            solution.append(i)
+            
+    return solution, nSol
+
+def initialPopulation(nCandidates, candidates1, nSamples, cover1):
+    samCovered=0
+    solution1=[]
+    nSol=0
+    coverOriginal=copy.deepcopy(cover1)
+    candidatesOriginal=copy.deepcopy(candidates1)
+    while samCovered<nSamples:
+        can=random.randint(0,nCandidates-1)
+        solution1.append(can)
+        nSol+=1
+        samCovered+=candidatesOriginal[can][0]
         i=1
-        while i <= candidates[can][0]:
+        while i <= candidates1[can][0]:
             j=1
-            aux=candidates[can][i]
-            while j <= cover[aux][0]:
-                candidates[cover[aux][j]][0]-=1
-                de=candidates[cover[aux][j]][1:].index(aux)
-                candidates[cover[aux][j]][de+1]=[]
-                candidates[cover[aux][j]].remove([])
+            aux=candidates1[can][i]
+            while j <= cover1[aux][0]:
+                candidates1[cover1[aux][j]][0]-=1
+                de=candidates1[cover1[aux][j]][1:].index(aux)
+                candidates1[cover1[aux][j]][de+1]=[]
+                candidates1[cover1[aux][j]].remove([])
                 j+=1
-            cover[aux][0]=nCandidates+1
+            cover1[aux][0]=nCandidates+1
     solBinary=np.zeros([nCandidates, 1])
     for i in range(nSol):
-        solBinary[solution[i]]=1
-        # cambiar reapir2 y quitar variable add
-    solution, nSol = repair2(nCandidates, nSamples, solBinary, coverOriginal)
-    return solution
+        solBinary[solution1[i]]=1
+    solution1, nSol = repair3(nCandidates, nSamples, solBinary, coverOriginal)
+    del cover1, candidates1
+    return solution1
+
 
 def dist(p1,p2):
     nP1=len(p1)
@@ -60,6 +221,7 @@ def crossover(i, j, P):
     for k in range(J+1):
         h.append(P[j][k])
         
+        
     
 def mutation(h, alpha, coverOriginal):
     nSol=len(h)
@@ -85,8 +247,8 @@ def update(H, P, candidates):
     set_C=range(nP)
     
     # Decision variables
-    X=mod.addVars(nCandidates,vtype=GRB.BINARY, name="Cameras")
-    lamb=(lb=0.0, ub=float('inf'),vtype=GRB.CONTINUOUS, name="lambda")
+    X=mod.addVars(nP,vtype=GRB.BINARY, name="Cameras")
+    lamb=addVar(lb=0.0, ub=float('inf'),vtype=GRB.CONTINUOUS, name="lambda")
     
     mod.update()
     
@@ -108,41 +270,48 @@ def update(H, P, candidates):
     # Solve
     mod.optimize()
     
-def Lambda(P, candidates):
+def coeficient(P, candidates):
     nP=len(P)
-    lamb=np.zeros(1,nP)
-    for i in P:
+    coef=np.zeros([2,nP])
+    coef[0][:]=range(0,nP)
+    for i in range(0,nP):
         nS=len(P[i])
         for j in range(nS):
-            lamb[i]+=candidates[0][j]
-    return lamb
+            coef[1][i]+=candidates[0][j]
+    return coef
     
     
 def Best(P):
-    for i in P:
-        obj=len(P[i])
+    nP=len(P)
+    for i in range(0,nP):
+        obj=len(P[i][:])
     sol=obj.index(min(obj))
+    return sol
 
-def HybridGA(alpha, sol0, n0, nCandidates, candidates, nSamples, cover, candidates):
+def HybridGA(alpha, sol0, n0, nCandidates, candidates, nSamples, cover):
     P=[]
-    for i in range(n0):
+    coverOriginal=copy.deepcopy(cover)
+    candidatesOriginal=copy.deepcopy(candidates)
+    for i in range(n0-1):
         p=initialPopulation(nCandidates, candidates, nSamples, cover)
         P.append(p)
     P.append(sol0)
-    H=[] #?
-    while stop_criteria==False:
+    H=[]
+    stop_criteria=True
+    while stop_criteria==True:
         nP=len(P)
         for s in range(nP):
-            lamb = Lambda(P, candidates)
-            Psort=[lamb P]
-            Psort.sort(axis=0)
-            P=Psort[:][0]
+            print(s)
+            coef = coeficient(P, candidatesOriginal)
+            # Psort=[coef, P]
+            # np.sort(Psort,axis=0, kind=None, order=None)
+            # P=Psort[:][0]
             i, j = selection(P)
             h = crossover(i,j,P)
-            hM = mutation(h, alpha, cover)
+            hM = mutation(h, alpha, coverOriginal)
             H.append(h)
             H.append(hM)
-        P = update(H, P, candidates)
+        P = update(H, P, candidatesOriginal)
     sol=Best(P)
     s=P[sol]
-    return s
+    return s, P
