@@ -8,7 +8,7 @@ def destruction1(nSol, solution, alpha):
         solution.remove(solution[s])
     return [solution, nSol, rem]
 
-def repair1(nCandidates, p, nSamples, solBinary, rem, cover):
+def repair1(nCandidates, nSamples, solBinary, rem, cover):
     mod = Model("Camera_Placement")
     
     # Set of candidates
@@ -67,7 +67,7 @@ def destruction2(nSol, solution, beta):
         solution.append(s)
     return [solution, nSol, add]
 
-def repair2(nCandidates, p, nSamples, solBinary, add, cover):
+def repair2(nCandidates, nSamples, solBinary, add, cover):
     mod = Model("Camera_Placement")
     
     # Set of candidates
@@ -121,6 +121,8 @@ import random
 import gurobipy as gp
 from gurobipy import *
 import math
+import copy
+from HybridGA import HybridGA
 
 print("----------------------")
 instances = [str(i).zfill(2) for i in range(1,2)]
@@ -141,7 +143,6 @@ for ins in instances:
             cover[ind].append(int(i))
             
     candidates=[[el * 0] for el in range(0,nCandidates)]
-#    p=np.zeros([nCandidates, nSamples])
     for i in range(0,nSamples):
         size=len(cover[i])
         for j in range(1,size):
@@ -153,8 +154,8 @@ for ins in instances:
     
     ct=time.time()
 
-    coverOriginal=cover.copy()
-    candidatesOriginal=candidates.copy()
+    coverOriginal=copy.deepcopy(cover)
+    candidatesOriginal=copy.deepcopy(candidates)
     c=[item[0] for item in cover]
     nSol=0
     samplesCovered=0
@@ -200,8 +201,7 @@ for ins in instances:
     for i in range(nSol):
         solBinary[solution[i]]=1
     
-    p=[]
-    solution, nSol = repair1(nCandidates, p, nSamples, solBinary, rem, coverOriginal)
+    solution, nSol = repair1(nCandidates, nSamples, solBinary, rem, coverOriginal)
     print(nSol)
     print(solution)
     
@@ -223,7 +223,6 @@ for ins in instances:
 
     ct=time.time()-ct
     print(ct)
-    candidates=candidatesOriginal
-    del candidatesOriginal
-    solution=HybridGA(0.4, solution, 10, nCandidates, candidates, nSamples, cover, candidates)
-    
+    del candidates, cover
+    solution=HybridGA(0.4, solution, 10, nCandidates, candidatesOriginal, nSamples, coverOriginal)
+
