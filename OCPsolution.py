@@ -56,7 +56,7 @@ def repair1(nCandidates, nSamples, solBinary, rem, cover):
     return solution, nSol
 
 def destruction2(nSol, solution, beta):
-    nd=math.floor(nSol*alpha)
+    nd=math.floor(nSol*beta)
     add=[]
     for i in range(nd):
         s=random.randint(0,nCandidates-1)
@@ -192,10 +192,10 @@ for ins in instances:
     
     alpha=0.4
     [solution, nSol, rem]= destruction1(nSol, solution, alpha)
-    print(nSol)
-    print(solution)
-    print(rem)
-    print("")
+#    print(nSol)
+#    print(solution)
+#    print(rem)
+#    print("")
 
     
     solBinary=np.zeros([nCandidates, 1])
@@ -205,13 +205,14 @@ for ins in instances:
     solution, nSol = repair1(nCandidates, nSamples, solBinary, rem, coverOriginal)
     print(nSol)
     print(solution)
+    print("")
     
     beta=0.4
     [solution, nSol, add]= destruction2(nSol, solution, beta)
-    print(nSol)
-    print(solution)
-    print(add)
-    print("")
+    #print(nSol)
+    #print(solution)
+    #print(add)
+    #print("")
 
     
     solBinary=np.zeros([nCandidates, 1])
@@ -221,9 +222,10 @@ for ins in instances:
     solution, nSol = repair2(nCandidates, nSamples, solBinary, add, coverOriginal)
     print(nSol)
     print(solution)
+    print("")
 
     ct=time.time()-ct
-    print(ct)
+    #print(ct)
     del candidates, cover
     solution=HybridGA(0.4, solution, 10, nCandidates, candidatesOriginal, nSamples, coverOriginal)
 

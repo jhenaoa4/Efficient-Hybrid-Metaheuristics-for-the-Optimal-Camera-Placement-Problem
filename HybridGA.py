@@ -64,8 +64,8 @@ def repair1(nCandidates, p, nSamples, solBinary, rem, cover):
             
     return solution, nSol
 
-def destruction2(nSol, solution, beta):
-    nd=math.floor(nSol*alpha)
+def destruction2(nSol, solution, beta, nCandidates):
+    nd=math.floor(nSol*beta)
     add=[]
     for i in range(nd):
         s=random.randint(0,nCandidates-1)
@@ -76,7 +76,7 @@ def destruction2(nSol, solution, beta):
         solution.append(s)
     return [solution, nSol, add]
 
-def repair2(nCandidates, p, nSamples, solBinary, add, cover):
+def repair2(nCandidates, nSamples, solBinary, add, cover):
     mod = Model("Camera_Placement")
     
     # Set of candidates
@@ -99,11 +99,15 @@ def repair2(nCandidates, p, nSamples, solBinary, add, cover):
     for j in range(nCandidates):
         name= "Cnstr_"+str(nSamples+j)
         mod.addConstr(X[j] <= solBinary[j], name=name)
-    
-    ctr2 = LinExpr()
-    for j in range(len(add)):
-        ctr2.addTerms(1,X[add[j]])
-    mod.addConstr(ctr2 >= len(add)-1)
+
+## ********************************************************
+# Al menos un candidato de cada padre debe ser seleccionado
+## ********************************************************
+
+#    ctr2 = LinExpr()
+#    for j in range(len(add)):
+#        ctr2.addTerms(1,X[add[j]])
+#    mod.addConstr(ctr2 >= len(add)-1)
     
     # Objective function
     mod.setObjective(quicksum(X[i] for i in range(nCandidates)), GRB.MINIMIZE)
@@ -165,12 +169,10 @@ def repair3(nCandidates, nSamples, solBinary, cover):
             
     return solution, nSol
 
-def initialPopulation(nCandidates, candidates1, nSamples, cover1):
+def initialPopulation(nCandidates, candidates1, nSamples, cover1, coverOriginal):
     samCovered=0
     solution1=[]
     nSol=0
-    coverOriginal=copy.deepcopy(cover1)
-    candidatesOriginal=copy.deepcopy(candidates1)
     while samCovered<nSamples:
         can=random.randint(0,nCandidates-1)
         solution1.append(can)
@@ -190,7 +192,7 @@ def initialPopulation(nCandidates, candidates1, nSamples, cover1):
     solBinary=np.zeros([nCandidates, 1])
     for i in range(nSol):
         solBinary[solution1[i]]=1
-    print(nSol)
+    #print(nSol)
     solution1, nSol = repair3(nCandidates, nSamples, solBinary, coverOriginal)
     del cover1, candidates1
     return solution1
@@ -208,7 +210,7 @@ def dist(p1,p2):
     return d
 
 def selection(P):
-    x=random.randint(0,5)
+    x=random.randint(0, 5)
     y=random.randint(0, 10)
     while y==x:
         y=random.randint(0,10)
@@ -218,20 +220,20 @@ def crossover(i, j, P):
     h=[]
     I=len(P[i])
     J=len(P[j])
-    for k in range(I+1):
+    for k in range(I):
         h.append(P[i][k])
-    for k in range(J+1):
+    for k in range(J):
         h.append(P[j][k])
-        
+    return h
         
     
-def mutation(h, alpha, coverOriginal):
+def mutation(h, alpha, coverOriginal, nCandidates, nSamples):
     nSol=len(h)
-    [hM, nSol, rem]=destruction1(nSol, h, alpha)
+    [hM, nSol, add]=destruction2(nSol, h, alpha, nCandidates)
     solBinary=np.zeros([nCandidates, 1])
     for i in range(int(nSol)):
         solBinary[hM[i]]=1
-    hM, nSol = repair1(nCandidates, nSamples, solBinary, rem, coverOriginal)
+    hM, nSol = repair2(nCandidates, nSamples, solBinary, add, coverOriginal)
     return hM
     
 def update(H, P, candidates):
@@ -295,7 +297,9 @@ def HybridGA(alpha, sol0, n0, nCandidates, candidates, nSamples, cover):
     coverOriginal=copy.deepcopy(cover)
     candidatesOriginal=copy.deepcopy(candidates)
     for i in range(n0-1):
-        p=initialPopulation(nCandidates, candidates, nSamples, cover)
+        candidates=copy.deepcopy(candidatesOriginal)
+        cover=copy.deepcopy(coverOriginal)
+        p=initialPopulation(nCandidates, candidates, nSamples, cover, coverOriginal)
         P.append(p)
     P.append(sol0)
     H=[]
@@ -303,15 +307,15 @@ def HybridGA(alpha, sol0, n0, nCandidates, candidates, nSamples, cover):
     while stop_criteria==True:
         nP=len(P)
         for s in range(nP):
-            print(s)
-            coef = coeficient(P, candidatesOriginal)
-            Psort=[coef, P]
-            Psort=pd.DataFrame(Psort)
-            Psort.sort_values(by=0)
-            P=Psort[:][0]
+            #print(s)
+#            Psort = coeficient(P, candidatesOriginal)
+#            Psort.append(P)
+#            Psort=pd.DataFrame(Psort)
+#            Psort.sort_values(by=0)
+#            P=Psort[:][0]
             i, j = selection(P)
             h = crossover(i,j,P)
-            hM = mutation(h, alpha, coverOriginal)
+            hM = mutation(h, alpha, coverOriginal, nCandidates, nSamples)
             H.append(h)
             H.append(hM)
         P = update(H, P, candidatesOriginal)
