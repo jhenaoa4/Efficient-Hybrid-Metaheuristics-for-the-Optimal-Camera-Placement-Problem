@@ -114,6 +114,16 @@ def repair2(nCandidates, nSamples, solBinary, add, cover):
             
     return solution, nSol
 
+def Best(P):
+    nP=len(P)
+    obj=[]
+    for i in range(0,nP):
+        obj.append(len(P[i][:]))
+    sol=obj.index(min(obj))
+    best=P[sol]
+    return best
+
+
 import time
 import conda
 import numpy as np
@@ -128,7 +138,7 @@ print("----------------------")
 instances = [str(i).zfill(2) for i in range(1,2)]
 for ins in instances:
     random.seed(5)
-#    data = open("AC_"+ins+"_cover.txt", "r")
+    # data = open("AC_"+ins+"_cover.txt", "r")
     data = open("C:/git/Instances/OCP/AC_"+ins+"_cover.txt", "r")
     nSC=data.readline().split()
     nSamples=int(nSC[0])
@@ -191,41 +201,35 @@ for ins in instances:
     print("")
     
     alpha=0.4
-    [solution, nSol, rem]= destruction1(nSol, solution, alpha)
-#    print(nSol)
-#    print(solution)
-#    print(rem)
-#    print("")
+    [solution2, nSol2, rem]= destruction1(nSol, solution, alpha)
 
     
     solBinary=np.zeros([nCandidates, 1])
-    for i in range(nSol):
-        solBinary[solution[i]]=1
+    for i in range(nSol2):
+        solBinary[solution2[i]]=1
     
-    solution, nSol = repair1(nCandidates, nSamples, solBinary, rem, coverOriginal)
-    print(nSol)
-    print(solution)
+    solution2, nSol2 = repair1(nCandidates, nSamples, solBinary, rem, coverOriginal)
+    print(nSol2)
+    print(solution2)
     print("")
     
     beta=0.4
-    [solution, nSol, add]= destruction2(nSol, solution, beta)
-    #print(nSol)
-    #print(solution)
-    #print(add)
-    #print("")
+    [solution3, nSol3, add]= destruction2(nSol2, solution2, beta)
 
     
     solBinary=np.zeros([nCandidates, 1])
-    for i in range(int(nSol)):
-        solBinary[solution[i]]=1
+    for i in range(int(nSol3)):
+        solBinary[solution3[i]]=1
 
-    solution, nSol = repair2(nCandidates, nSamples, solBinary, add, coverOriginal)
-    print(nSol)
-    print(solution)
+    solution3, nSol3 = repair2(nCandidates, nSamples, solBinary, add, coverOriginal)
+    print(nSol3)
+    print(solution3)
     print("")
 
     ct=time.time()-ct
     #print(ct)
-    del candidates, cover
+    
+    P=[solution, solution2, solution3]
+    solution=Best(P)
+    del candidates, cover, c, P, solution2, solution3
     solution=HybridGA(0.4, solution, 10, nCandidates, candidatesOriginal, nSamples, coverOriginal)
-

@@ -209,7 +209,7 @@ def dist(p1,p2):
     d=nP1+nP2-2*t
     return d
 
-def selection(P):
+def selection():
     x=random.randint(0, 5)
     y=random.randint(0, 10)
     while y==x:
@@ -236,59 +236,72 @@ def mutation(h, alpha, coverOriginal, nCandidates, nSamples):
     hM, nSol = repair2(nCandidates, nSamples, solBinary, add, coverOriginal)
     return hM
     
-def update(H, P, candidates):
+def update(H, P):
+    P=[P, H]
     nP=len(P)
-    distances=np.zeros(nP,nP)
-    for i in range(nP):
-        for j in range(i,nP):
-            distances[i][j]=dist(P[i],P[j])
-        
-            
+    # distances=np.zeros(nP,nP)
+    distances=[]
+    for i in range(nP-1):
+        distances.append([])
+        for j in range(i+1,nP):
+            # distances[i][j]=dist(P[i],P[j])
+            distances[i].append(dist(P[i],P[j]))
+    
+
     mod = Model("Population_Update")
     b=Best(P)
     
-    # Set of candidates
+    # Set of individuals
     set_C=range(nP)
     
     # Decision variables
-    X=mod.addVars(nP,vtype=GRB.BINARY, name="Cameras")
-    lamb=addVar(lb=0.0, ub=float('inf'),vtype=GRB.CONTINUOUS, name="lambda")
+    X=mod.addVars(nP,vtype=GRB.BINARY, name="Population")
+    lamb=mod.addVar(lb=0.0, ub=float('inf'),vtype=GRB.CONTINUOUS, name="lambda")
     
     mod.update()
     
     # Constraints
-    for i in range(nP):
-        for j in range(i+1,nP):
+    for i in range(nP-1):
+        for j in range(nP-i-1):
             name= "Cnstr_"+str(j)
-            mod.addConstr(lamb[i] >= distance[i][j]-100*(2-X[i]-X[j]), name=name)
+            mod.addConstr(lamb >= distances[i][j]-100*(2-X[i]-X[j]), name=name)
     
-    mod.addConstr(sum(X[i])==len(P))
+    mod.addConstr(sum(X)==len(P))
     mod.addConstr(X[b]==1)
     
     # Objective function
     mod.setObjective(lamb, GRB.MINIMIZE)
-    mod.setParam(GRB.Param.OutputFlag, 0)
+    mod.setParam(GRB.Param.OutputFlag, 1)
     
     mod.update()
     
     # Solve
     mod.optimize()
     
+    nP=sum(X)
+    Pnew=[]
+    for i in range(nP):
+        if X[i].X >= 0.99:
+            Pnew.append(P[i])
+    
+    return Pnew
+      
 def coeficient(P, candidates):
     nP=len(P)
-    coef=np.zeros([2,nP])
-    coef[0][:]=range(0,nP)
+    coef=[[]]
     for i in range(0,nP):
         nS=len(P[i])
+        coef[0].append(0)
         for j in range(nS):
-            coef[1][i]+=candidates[0][j]
+            coef[0][i]+=candidates[0][j]
     return coef
     
     
 def Best(P):
     nP=len(P)
+    obj=[]
     for i in range(0,nP):
-        obj=len(P[i][:])
+        obj.append(len(P[i][:]))
     sol=obj.index(min(obj))
     return sol
 
@@ -303,22 +316,24 @@ def HybridGA(alpha, sol0, n0, nCandidates, candidates, nSamples, cover):
         P.append(p)
     P.append(sol0)
     H=[]
-    stop_criteria=True
-    while stop_criteria==True:
+    # stop_criteria=True
+    # while stop_criteria==True:
+    for it in range(100):
         nP=len(P)
         for s in range(nP):
             #print(s)
-#            Psort = coeficient(P, candidatesOriginal)
-#            Psort.append(P)
-#            Psort=pd.DataFrame(Psort)
-#            Psort.sort_values(by=0)
-#            P=Psort[:][0]
-            i, j = selection(P)
+            Psort = coeficient(P, candidatesOriginal)
+            Psort.append(P)
+            Psort=pd.DataFrame(Psort)
+            Psort.sort_values(by=0, axis=1)
+            Psort=Psort.values.tolist()
+            P=Psort[:][1]
+            i, j = selection()
             h = crossover(i,j,P)
             hM = mutation(h, alpha, coverOriginal, nCandidates, nSamples)
             H.append(h)
             H.append(hM)
-        P = update(H, P, candidatesOriginal)
+        P = update(H, P)
     sol=Best(P)
     s=P[sol]
     return s, P
