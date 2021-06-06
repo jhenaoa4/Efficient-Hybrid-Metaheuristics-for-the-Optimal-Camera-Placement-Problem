@@ -118,7 +118,7 @@ def Best(P):
     nP=len(P)
     obj=[]
     for i in range(0,nP):
-        obj.append(len(P[i][:]))
+        obj.append(len(P[i]))
     sol=obj.index(min(obj))
     best=P[sol]
     return best
@@ -135,11 +135,11 @@ import copy
 from HybridGA import HybridGA
 
 print("----------------------")
-instances = [str(i).zfill(2) for i in range(1,2)]
+instances = [str(i).zfill(2) for i in range(2,3)]
 for ins in instances:
-    random.seed(5)
-    # data = open("AC_"+ins+"_cover.txt", "r")
-    data = open("C:/git/Instances/OCP/AC_"+ins+"_cover.txt", "r")
+    # random.seed(5)
+    data = open("AC_"+ins+"_cover.txt", "r")
+    # data = open("C:/git/Instances/OCP/AC_"+ins+"_cover.txt", "r")
     nSC=data.readline().split()
     nSamples=int(nSC[0])
     nCandidates=int(nSC[1])
@@ -159,7 +159,6 @@ for ins in instances:
         for j in range(1,size):
             candidates[cover[i][j]][0]+=1
             candidates[cover[i][j]].append(i)
-#            p[cover[i][j]][i]=1
             
     del cand, nCand, size, data
     
@@ -200,6 +199,8 @@ for ins in instances:
     print(solution)
     print("")
     
+    solution0=copy.deepcopy(solution)
+    
     alpha=0.4
     [solution2, nSol2, rem]= destruction1(nSol, solution, alpha)
 
@@ -213,6 +214,8 @@ for ins in instances:
     print(solution2)
     print("")
     
+    
+    solution1=copy.deepcopy(solution2)
     beta=0.4
     [solution3, nSol3, add]= destruction2(nSol2, solution2, beta)
 
@@ -229,7 +232,8 @@ for ins in instances:
     ct=time.time()-ct
     #print(ct)
     
-    P=[solution, solution2, solution3]
-    solution=Best(P)
-    del candidates, cover, c, P, solution2, solution3
-    solution=HybridGA(0.4, solution, 10, nCandidates, candidatesOriginal, nSamples, coverOriginal)
+    P=[solution0, solution1, solution3]
+    solutionB=Best(P)
+    del candidates, cover, c, P, solution2, solution3, solution0, solution1
+    solutionB=HybridGA(0.4, solutionB, 10, nCandidates, candidatesOriginal, nSamples, coverOriginal)
+    print(solutionB)

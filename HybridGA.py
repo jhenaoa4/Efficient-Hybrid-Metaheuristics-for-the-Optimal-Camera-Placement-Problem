@@ -6,6 +6,7 @@ from gurobipy import *
 import math
 import copy
 import pandas as pd
+import time
 
 def destruction1(nSol, solution, alpha):
     nd=math.floor(nSol*alpha)
@@ -17,7 +18,7 @@ def destruction1(nSol, solution, alpha):
         solution.remove(solution[s])
     return [solution, nSol, rem]
 
-def repair1(nCandidates, p, nSamples, solBinary, rem, cover):
+def repair1(nCandidates, nSamples, solBinary, rem, cover):
     mod = Model("Camera_Placement")
     
     # Set of candidates
@@ -145,7 +146,7 @@ def repair3(nCandidates, nSamples, solBinary, cover):
         for k in range(1,len(cover[j])):
             ctr.addTerms(1,X[cover[j][k]])
         mod.addConstr(ctr >= 1, name=name)
-#        mod.addConstr(quicksum(p[i][j]*X[i] for i in range(nCandidates)) >= 1, name=name)
+
     
     for j in range(nCandidates):
         name= "Cnstr_"+str(nSamples+j)
@@ -320,12 +321,11 @@ def HybridGA(alpha, sol0, n0, nCandidates, candidates, nSamples, cover):
     P.append(sol0)
     H=[]
     
-    # stop_criteria=True
-    # while stop_criteria==True:
-    for it in range(100):
+    timeout=time.time()+60*5
+    while time.time() < timeout:
+    # for it in range(100):
         nP=len(P)
         for s in range(nP):
-            #print(s)
             Psort = coeficient(P, candidatesOriginal)
             Psort.append(P)
             Psort=pd.DataFrame(Psort)
@@ -337,8 +337,7 @@ def HybridGA(alpha, sol0, n0, nCandidates, candidates, nSamples, cover):
             hM = mutation(h, alpha, coverOriginal, nCandidates, nSamples)
             H.append(h)
             H.append(hM)
-        print("it=",it)
         P = update(H, P, nP, nCandidates)
     sol=Best(P)
     s=P[sol]
-    return s, P
+    return s
