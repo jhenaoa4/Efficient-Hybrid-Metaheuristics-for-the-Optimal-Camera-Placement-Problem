@@ -206,20 +206,22 @@ def dist(p1,p2):
         for j in p2:
             if i==j:
                 t+=1
-    d=nP1+nP2-2*t
-    return d
+                break
+    #d=nP1+nP2-2*t
+    return t
 
 def selection():
     x=random.randint(0, 5)
-    y=random.randint(0, 10)
+    y=random.randint(0, 9)
     while y==x:
-        y=random.randint(0,10)
+        y=random.randint(0,9)
     return x, y
     
 def crossover(i, j, P):
     h=[]
     I=len(P[i])
     J=len(P[j])
+
     for k in range(I):
         h.append(P[i][k])
     for k in range(J):
@@ -236,51 +238,52 @@ def mutation(h, alpha, coverOriginal, nCandidates, nSamples):
     hM, nSol = repair2(nCandidates, nSamples, solBinary, add, coverOriginal)
     return hM
     
-def update(H, P):
-    P=[P, H]
-    nP=len(P)
-    # distances=np.zeros(nP,nP)
-    distances=[]
-    for i in range(nP-1):
-        distances.append([])
-        for j in range(i+1,nP):
-            # distances[i][j]=dist(P[i],P[j])
-            distances[i].append(dist(P[i],P[j]))
-    
+def update(H, P, nP, nCandidates):
+    for i in range(len(H)):
+        P.append(H[i])
+    nPH=len(P)
 
-    mod = Model("Population_Update")
+    distances=np.zeros([nPH,nPH])
+    for i in range(nPH):
+        for j in range(i+1,nPH):
+            distances[i][j]=dist(P[i],P[j])
+            distances[j][i]=distances[i][j]
+    
     b=Best(P)
+    print(len(P[b]))
+    print(P[b])
+    mod = Model("Population_Update")
     
     # Set of individuals
-    set_C=range(nP)
+    set_C=range(nPH)
     
     # Decision variables
-    X=mod.addVars(nP,vtype=GRB.BINARY, name="Population")
+    X=mod.addVars(nPH,vtype=GRB.BINARY, name="Population")
     lamb=mod.addVar(lb=0.0, ub=float('inf'),vtype=GRB.CONTINUOUS, name="lambda")
     
     mod.update()
     
     # Constraints
-    for i in range(nP-1):
-        for j in range(nP-i-1):
-            name= "Cnstr_"+str(j)
-            mod.addConstr(lamb >= distances[i][j]-100*(2-X[i]-X[j]), name=name)
+    for i in range(nPH):
+        for j in range(nPH):
+            if i!=j:
+                name= "Cnstr_"+str(i)+"_"+str(j)
+                mod.addConstr(lamb >= distances[i][j]-nCandidates*(2-X[i]-X[j]), name=name)
     
-    mod.addConstr(sum(X)==len(P))
+    mod.addConstr(quicksum(X[i] for i in set_C)==nP)
     mod.addConstr(X[b]==1)
     
     # Objective function
-    mod.setObjective(lamb, GRB.MINIMIZE)
-    mod.setParam(GRB.Param.OutputFlag, 1)
+    mod.setObjective(lamb + quicksum(X[i] for i in range(nP))/nPH, GRB.MINIMIZE)
+    mod.setParam(GRB.Param.OutputFlag, 0)
     
     mod.update()
     
     # Solve
     mod.optimize()
     
-    nP=sum(X)
     Pnew=[]
-    for i in range(nP):
+    for i in range(nPH):
         if X[i].X >= 0.99:
             Pnew.append(P[i])
     
@@ -316,6 +319,7 @@ def HybridGA(alpha, sol0, n0, nCandidates, candidates, nSamples, cover):
         P.append(p)
     P.append(sol0)
     H=[]
+    
     # stop_criteria=True
     # while stop_criteria==True:
     for it in range(100):
@@ -333,7 +337,8 @@ def HybridGA(alpha, sol0, n0, nCandidates, candidates, nSamples, cover):
             hM = mutation(h, alpha, coverOriginal, nCandidates, nSamples)
             H.append(h)
             H.append(hM)
-        P = update(H, P)
+        print("it=",it)
+        P = update(H, P, nP, nCandidates)
     sol=Best(P)
     s=P[sol]
     return s, P
