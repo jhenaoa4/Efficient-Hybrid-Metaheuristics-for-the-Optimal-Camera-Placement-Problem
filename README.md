@@ -10,9 +10,9 @@ The Optimal Camera Placement Problem (OCP) is a special case of the of the Unico
 
 ## Solution and Results
 
+In order to solve the problem set above, a hybrid metaheuristic was developed, this algorithm has two parts, first there is a constructive hybrid part where a initial solution is built using also a Local Neighborhood Search (LNS) algorithm (destroy and repair), then that solution will be part of a initial population for a hybrid genetic algorithm.
 
-
-The details of the description of the problem, the hybrid algorithm and results are in the paper atatched in this repository. 
+The details of the description of the problem, the hybrid algorithm and results are in the paper atatched in this repository: Hybrid Metaheuristic Juliana Henao.pdf
 
 ## Run algorithm
 
