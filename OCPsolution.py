@@ -138,8 +138,8 @@ print("----------------------")
 instances = [str(i).zfill(2) for i in range(2,3)]
 for ins in instances:
     # random.seed(5)
-    data = open("AC_"+ins+"_cover.txt", "r")
-    # data = open("C:/git/Instances/OCP/AC_"+ins+"_cover.txt", "r")
+#     data = open("AC_"+ins+"_cover.txt", "r")
+    data = open("C:/git/Instances/OCP/AC_"+ins+"_cover.txt", "r")
     nSC=data.readline().split()
     nSamples=int(nSC[0])
     nCandidates=int(nSC[1])
