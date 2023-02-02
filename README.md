@@ -10,4 +10,14 @@ The Optimal Camera Placement Problem (OCP) is a special case of the of the Unico
 
 ## Solution and Results
 
+
+
 The details of the description of the problem, the hybrid algorithm and results are in the paper atatched in this repository. 
+
+## Run algorithm
+
+In order to run this Metaheuristic, run the file
+ 
+```bash
+  OCPsolution.py
+```
